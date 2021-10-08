@@ -72,15 +72,22 @@ class DiscreteState: public SetState {
 class Segments_minus_DiscreteSet_State: virtual public SegmentState, virtual public SetState{
     private:
 
-    protected:
-        void print(std::ostream &out) const{
-            out << *this;
-        }
-
     public:
         Segments_minus_DiscreteSet_State(int beg, int end, std::set<int> dis_set): SetState(dis_set), SegmentState(beg, end){};
 
         friend std::ostream& operator<< (std::ostream &out, const Segments_minus_DiscreteSet_State &to_print);
+
+        std::set<int> main_information() const{
+            std::set<int> res;
+            res.insert(*SegmentState::main_information().begin());
+            for (int i: SetState::main_information()){
+                if (SegmentState::contains(i)){
+                    res.insert(i);
+                }
+            }
+            res.insert(*SegmentState::main_information().rbegin());
+            return res;
+        }
 
         bool contains(int s) const{
             return ((SegmentState::contains(s))&&(!SetState::contains(s)));
@@ -122,27 +129,32 @@ std::ostream& operator<< (std::ostream &out, const Segments_plus_DiscreteSet_Sta
     return out;
 }
 
-class Segments_plus_minus_DiscreteSet_State: virtual public Segments_minus_DiscreteSet_State, virtual public SetState{
+class Segments_plus_minus_DiscreteSet_State: virtual public SegmentState, virtual public SetState{
     private:
+
+    protected:
+        SetState dis_set_to_min;
+        SetState dis_set_to_plus;
 
     public:
         Segments_plus_minus_DiscreteSet_State(int beg, int end, std::set<int> dis_set_to_min, std::set<int> dis_set_to_plus):
-        Segments_minus_DiscreteSet_State(beg, end, dis_set_to_min), SetState(dis_set_to_plus) {};
+        SegmentState(beg, end), dis_set_to_min(dis_set_to_min), dis_set_to_plus(dis_set_to_plus) {};
 
         friend std::ostream& operator<< (std::ostream &out, const Segments_plus_minus_DiscreteSet_State &to_print);
 
         bool contains(int s) const{
-            return (Segments_minus_DiscreteSet_State::contains(s)) || (SetState::contains(s));
+            return (((SegmentState::contains(s)) && (!dis_set_to_min.contains(s))) || (dis_set_to_plus.contains(s)));
         }
 };
 
 std::ostream& operator<< (std::ostream &out, const Segments_plus_minus_DiscreteSet_State &to_print){
-    for (int i: to_print.SetState::main_information()){
-        if (!to_print.Segments_minus_DiscreteSet_State::contains(i)){
+    for (int i: to_print.dis_set_to_plus.main_information()){
+        if (!to_print.SegmentState::contains(i)){
             out << i << " ";
         }
     }
-    //!Need to add something here to print segments_minus correctly.
+    out << Segments_minus_DiscreteSet_State(*to_print.SegmentState::main_information().begin(),
+                                            *to_print.SegmentState::main_information().rbegin(), to_print.dis_set_to_min.main_information());
     return out;
 }
 
@@ -172,7 +184,7 @@ int main(int argc, const char * argv[]) {
     SegmentState s(0,10);
     SetState ss({1, 3, 5, 7, 23, 48, 57, 60, 90, 99});
     ProbabilityTest pt(10,0,100,100000);
-    Segments_plus_minus_DiscreteSet_State try_test (3, 7, {4}, {1, 9});
+    Segments_plus_minus_DiscreteSet_State try_test (3, 7, {4}, {5, 9});
     std::cout << pt(d) << std::endl;
     std::cout << pt(s) << std::endl;
     std::cout << pt(ss) << std::endl;
