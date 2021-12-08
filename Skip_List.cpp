@@ -167,6 +167,187 @@ class SkipList{
         int size(){
             return len_list;
         }
+
+        class bidirectional_iterator{
+            private:
+                SkipNode<T>* it;
+
+                bidirectional_iterator(SkipNode<T>* it2create){
+                    it = it2create;
+                }
+
+            public:
+
+                friend bool operator == (bidirectional_iterator& it_1, bidirectional_iterator& it_2){
+                    if (it_1.it == it_2.it){
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }
+
+
+                friend bool operator != (bidirectional_iterator it1, bidirectional_iterator it2){
+                    return !(it1 == it2);
+                }
+
+
+                bidirectional_iterator& operator ++(bidirectional_iterator& iter){
+                    if (iter){
+                        iter.it = iter.it->next_ptrs[0]; 
+                    }
+                    return iter;
+                }
+
+                bidirectional_iterator& operator --(bidirectional_iterator& iter){
+                    auto ptr = this->HEAD;
+                    int counter = 0;
+                    while ((ptr != nullptr) && !(ptr->next_ptrs[0] == iter) && (counter < this->len_list)){
+                        counter++;
+                        ptr = ptr->next_ptrs[0];
+
+                    }
+
+                    return ptr;
+                }
+
+                T operator * (bidirectional_iterator& iter){
+                    if (iter.it){
+                        return iter.it->value;
+                    } else {
+                        return this->HEAD->value;
+                    }
+                }
+        };
+
+        class reverse_iterator{
+            private:
+                bidirectional_iterator it_base;
+
+                reverse_iterator(SkipNode<T>* it2create): it_base(it2create) {};
+        
+            public:
+
+                friend bool operator == (reverse_iterator& it1, reverse_iterator& it2){
+                    return (it1.it_base == it2.it_base);
+                }
+
+                friend bool operator != (reverse_iterator& it1, reverse_iterator& it2){
+                    return (it1.it_base != it2.it_base);
+                }
+
+                reverse_iterator& operator++ (reverse_iterator it){
+                    ++it.it_base;
+                    return it;
+                }
+
+                reverse_iterator& operator-- (reverse_iterator it){
+                    ++it.it_base;
+                    return it;
+                }
+
+                T operator * (reverse_iterator& it){
+                    return (*it.it_base);
+                }
+
+        };
+
+        bidirectional_iterator begin() {
+            bidirectional_iterator it (HEAD->next_ptrs[0]);
+            return it;
+        }
+
+        bidirectional_iterator end(){
+            bidirectional_iterator it (nullptr);
+            return it;
+        }
+
+        reverse_iterator cend(){
+            auto ptr = HEAD;
+            while (ptr->next_ptrs[0]){
+                ptr = ptr->next_ptrs[0];
+            }
+
+            return ptr;
+        }
+
+        reverse_iterator cbegin(){
+            reverse_iterator it (HEAD);
+            return it;
+        }
+
+        bidirectional_iterator find(T val){
+            SkipNode<T>* it = HEAD;
+            for (auto i = level_max - 1; i >= 0; i--){
+                while ((it->next_ptrs[i] != nullptr) && ((*it).next_ptrs[i]->value < val)){
+                    it = it->next_ptrs[i];
+                }
+            }
+            if (it->next_ptrs[0] == nullptr){
+                it = nullptr;
+            } else if (it->next_ptrs[0]->value != val){
+                it = nullptr;
+            } else {
+                it = it->next_ptrs[0];
+            }
+            bidirectional_iterator res (it);
+
+            return res;
+        }
+
+        int count(T val){
+            int amount = 0;
+            auto it = find(val);
+            while (*it == val){
+                ++it;
+                amount++;
+            }
+            return amount;
+        }
+
+        bidirectional_iterator lower_bound(T val){
+            SkipNode<T>* it = HEAD;
+            for (auto i = level_max - 1; i >= 0; i--){
+                while ((it->next_ptrs[i] != nullptr) && ((*it).next_ptrs[i]->value < val)){
+                    it = it->next_ptrs[i];
+                }
+            }
+            bidirectional_iterator res (it->next_ptrs[0]);
+            return res;
+        }
+
+        bidirectional_iterator upper_bound(T val){
+            bidirectional_iterator it = lower_bound(val);
+            int amount = count(val);
+            for (int i = 0; i < amount; i++){
+                ++it;
+            }
+            return it;
+        }
+
+        void clear(){
+            if (HEAD){
+                auto ptr = HEAD;
+                while (ptr){
+                    auto ptr_next = ptr->next_ptrs[0];
+                    delete ptr;
+                    ptr = ptr_next;
+                }
+            }
+            set_head();
+            len_list = 0;   
+        }
+
+        ~SkipList(){
+            if (HEAD){
+                auto ptr = HEAD;
+                while (ptr){
+                    auto ptr_next = ptr->next_ptrs[0];
+                    delete ptr;
+                    ptr = ptr_next;
+                }
+            }
+        }
 };
 
 template <typename U>
